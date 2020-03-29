@@ -9,15 +9,6 @@ using namespace TA;
 TextAnalysis* instance = nullptr;
 std::mutex mutex;
 
-TextAnalysis::~TextAnalysis()
-{
-    Close();
-    if(_readThread.joinable())
-    {
-        _readThread.join();
-    }
-}
-
 TextAnalysis* TextAnalysis::Instance()
 {
     std::lock_guard<std::mutex> lock(mutex);
@@ -29,51 +20,36 @@ TextAnalysis* TextAnalysis::Instance()
     return instance;
 }
 
-void TextAnalysis::DefineFilters(std::vector<Filter> filters)
+void TextAnalysis::DefineFilters(const std::vector<Filter>& filters)
 {
-    _filters.resize(filters.size());
-    memcpy(&(_filters[0]), &filters[0], filters.size() * sizeof(Filter));
+    _filters = filters;
 }
 
-int TextAnalysis::Open(const char* in, const char* out)
+int TextAnalysis::Process(std::istream& in, std::ostream& out)
 {
-    printf("opening\n");
-    _in_stream = &std::cin;
-    
-    // // _in_stream.open(in, std::ios_base::openmode::_S_in);
-    // if(_in_stream->isis_open() == false)
-    // {
-    //     printf("couldn't open\b");
-    //     return 1;
-    // }    
-
-    _readThread = std::thread([this]() -> void 
+    std::string line;
+    while(in.eof() == false)
     {
-        std::string line;
+        std::lock_guard<std::mutex> lock(mutex);
+        std::getline(in, line);
 
-        printf("read thread\n");
-        while(_in_stream->eof() == false)
+        if(line.length() <= 1)
         {
-            std::lock_guard<std::mutex> lock(mutex);
-            // if(_in_stream.is_open() == false)
-            // {
-            //     break;
-            // }
-            
-            printf("reading line\n");
-            getline(*_in_stream, line);
-            printf("%s", line.c_str());
+            line += "\n";
+            out.write(line.c_str(), line.length());
         }
-    });
-
-    _readThread.detach();
-}
-
-void TextAnalysis::Close()
-{
-    // std::lock_guard<std::mutex> lock(mutex);
-    // if(_in_stream.is_open())
-    // {
-    //     _in_stream.close();
-    // }
+        else
+        {
+            for(size_t idx = 0; idx < _filters.size(); idx++)
+            {
+                std::string copy = line.substr(0, line.length() - 1);
+                
+                if(_filters[idx].Process(copy))
+                {
+                    copy += "\n";
+                    out.write(copy.c_str(), copy.length());
+                }
+            }
+        }
+    }
 }

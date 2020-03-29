@@ -7,29 +7,39 @@
 #include <memory>
 #include <thread>
 #include <fstream>
+#include <regex>
 
 namespace TA
 {
-    struct Filter
+    class Filter
     {
-        std::string RegEx;
+    public:
+        Filter(std::string regex)
+        {
+            _regex = std::regex(regex);
+        }
+
+        bool Process(std::string line)
+        {
+            
+            return std::regex_match(line, _regex);
+        }
+
+    private:
+        std::regex _regex;
     };
 
     class TextAnalysis
     {
         public:
-            ~TextAnalysis();
             static TextAnalysis* Instance();
 
-            void DefineFilters(std::vector<Filter> filters);
-            int Open(const char* in, const char* out = nullptr);
-            void Close();
+            void DefineFilters(const std::vector<Filter>& filters);
+            int Process(std::istream& in, std::ostream& out);
 
         private:
             TextAnalysis(){}
 
-            std::thread _readThread;
             std::vector<Filter> _filters;
-            std::istream* _in_stream;
     };
 }

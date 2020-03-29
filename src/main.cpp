@@ -1,6 +1,7 @@
 #include <stdio.h>  
 #include <unistd.h>  
 #include "TextAnalysis.h"
+#include <iostream>
 
 using namespace TA;
 int main(int argc, char *argv[])
@@ -31,16 +32,23 @@ int main(int argc, char *argv[])
     //     }  
     // }
 
-    printf("opening stdin\n");
-    TextAnalysis::Instance()->Open("stdin");
-    while(true)
-    {
-        if(static_cast<int>(getchar()) == 27)
-        {
-            break;
-        }
-    }
+    
+    // std::string line;
+    // std::getline(std::cin, line);
 
+    // printf("Read line %s\n", line.c_str());
+
+    std::vector<TA::Filter> filters;
+    filters.push_back(TA::Filter(".*add.*"));
+    
+    //std::string test = "    <add key=\"nuget.org\" value=\"https://api.nuget.org/v3/index.json\" />";
+    //std::regex rx(".*add.*");
+
+    //printf("%d\n", std::regex_match(test, rx));
+
+    TextAnalysis::Instance()->DefineFilters(filters);
+    TextAnalysis::Instance()->Process(std::cin, std::cout);
+    
     // // this is sloppy, I know
     // delete TextAnalysis::Instance();
 }
